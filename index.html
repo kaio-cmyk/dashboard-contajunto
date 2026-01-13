@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Conta Junto — Dashboard TV (v22 Fonts & Meta)</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#f8fafc; 
+      --stroke:rgba(15,23,42,.08);
+      --text:#0f172a; 
+      --muted:#64748b;
+      --blue:#2563eb; 
+      --green:#16a34a; 
+      --red:#dc2626; 
+      --amber:#d97706; 
+      --shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.08);
+      --card-bg: #ffffff;
+      --r20:12px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,-apple-system,sans-serif;
+      background: #f1f5f9;
+      color:var(--text);
+      overflow:hidden;
+    }
+    
+    .wrap{
+      height:100%; padding:14px; 
+      display:grid; 
+      grid-template-rows:56px 1fr 20px; 
+      gap:14px;
+    }
+
+    /* HEADER */
+    header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 20px;
+      background:var(--card-bg);
+      border:1px solid var(--stroke); border-radius:var(--r20); box-shadow:var(--shadow);
+    }
+    .brand{display:flex; gap:10px; align-items:center;}
+    .logo{
+      width:32px; height:32px; border-radius:8px;
+      background: linear-gradient(135deg, var(--blue), #3b82f6);
+      position:relative; overflow:hidden;
+    }
+    .brand h1{margin:0; font-size:18px; letter-spacing:-.01em; color:#1e293b;}
+    .brand .sub{margin:0 0 0; font-size:11px; color:var(--muted); font-weight:500;}
+    
+    .rightHeader{display:flex; align-items:center; gap:10px;}
+    .pill{
+      display:flex; align-items:center; gap:6px;
+      padding:5px 12px; border-radius:6px;
+      background:#f1f5f9; border:1px solid var(--stroke);
+      font-weight:600; font-size:12px; color:#334155;
+    }
+    .dot{width:6px;height:6px;border-radius:50%;}
+    .dot.ok{background:var(--green); box-shadow:0 0 0 2px rgba(22,163,74,.15);}
+    .dot.bad{background:var(--red); box-shadow:0 0 0 2px rgba(220,38,38,.15);}
+
+    /* MAIN LAYOUT */
+    main{
+      display:grid; 
+      grid-template-columns: 1fr 650px; 
+      gap:18px; 
+      min-height:0;
+    }
+
+    .panel{
+      display:flex; flex-direction:column;
+      background: transparent; border: none; padding:0;
+      min-height:0; overflow:hidden;
+    }
+
+    .sectionHeader{
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:8px; padding:0 2px;
+    }
+    .sectionHeader h2{
+      margin:0; font-size:14px; font-weight:700; color:#334155; display:flex; align-items:center; gap:6px;
+    }
+    .badge{
+      font-size:10px; font-weight:600; padding:3px 8px; border-radius:4px;
+      background:#e2e8f0; color:#475569;
+    }
+
+    /* ESQUERDA: DEPT GRID */
+    .deptGrid{
+      display:grid; 
+      grid-template-columns: repeat(3, 1fr); 
+      grid-template-rows: repeat(2, 1fr); 
+      gap:14px; 
+      height:100%; min-height:0;
+    }
+    
+    .deptCard{
+      background:var(--card-bg);
+      border:1px solid var(--stroke);
+      border-radius:14px; 
+      box-shadow:var(--shadow);
+      padding:12px; 
+      display:flex; flex-direction:column; justify-content:space-between;
+      position:relative; overflow:hidden;
+    }
+
+    /* ALERTA */
+    @keyframes bgPulse {
+      0% { background-color: #fff; border-color: rgba(220,38,38,0.3); }
+      50% { background-color: #fef2f2; border-color: rgba(220,38,38,1); }
+      100% { background-color: #fff; border-color: rgba(220,38,38,0.3); }
+    }
+    @keyframes textFlash { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+    .deptCard.alert {
+      animation: bgPulse 2s infinite ease-in-out;
+      box-shadow: 0 2px 12px rgba(220,38,38,0.15);
+    }
+    .alertBadge {
+      position:absolute; top:8px; right:8px;
+      background:var(--red); color:#fff;
+      font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em;
+      padding:4px 8px; border-radius:4px;
+      box-shadow: 0 2px 6px rgba(220,38,38,0.3);
+      display:none; 
+      animation: textFlash 1.5s infinite;
+      z-index: 10;
+    }
+    .deptCard.alert .alertBadge { display:block; }
+    .deptCard.alert .deptTitle { color:var(--red); }
+
+    .deptTitle{
+      font-size:15px; 
+      font-weight:800; 
+      text-transform: uppercase; color: #334155;
+      margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      padding-right: 70px; 
+    }
+
+    .chartWrap{
+      flex:1; position:relative; width:100%; min-height:0;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .chartWrap canvas{max-height:92% !important; max-width:100%;}
+
+    .chartOverlay{
+      position:absolute; inset:0;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;
+    }
+    .chartPct{
+      font-size:30px; 
+      font-weight:800; color:var(--text); letter-spacing:-.03em; line-height:1;
+    }
+    .chartLabel{font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; margin-top:2px;}
+
+    .deptFooter{
+      display:grid; grid-template-columns:1fr 1fr 1fr; 
+      gap:4px; padding-top:8px; margin-top:4px;
+      border-top:1px solid #f1f5f9;
+    }
+    .statItem{display:flex; flex-direction:column; align-items:center; justify-content:center;}
+    .statVal{
+      font-size:18px; 
+      font-weight:800; line-height:1; color:#334155;
+    }
+    .statLabel{font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; margin-top:2px;}
+    
+    .c-green{color:var(--green) !important} 
+    .c-blue{color:var(--blue) !important} 
+    .c-red{color:var(--red) !important}
+
+    /* DIREITA: SIDEBAR COMPACTA */
+    .sidebarContent{
+      display:flex; flex-direction:column; gap:14px;
+      height:100%; overflow-y:auto; padding-right:2px;
+    }
+
+    .sideCard{
+      background:var(--card-bg); border:1px solid var(--stroke); border-radius:14px;
+      padding:12px; box-shadow:var(--shadow);
+    }
+
+    /* KPIs */
+    .kpis{
+      display:grid; grid-template-columns: 1fr 1fr; gap:10px;
+    }
+    .kpi{
+      background:#f8fafc; border:1px solid var(--stroke); border-radius:10px;
+      padding:8px 12px; display:flex; flex-direction:column; justify-content:center;
+    }
+    .kpi .label{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;}
+    .kpi .value{font-size:22px;font-weight:800;letter-spacing:-.02em; margin-top:1px; color:#1e293b;}
+    .kpi .hint{font-size:10px;color:#94a3b8;font-weight:500;}
+    
+    .kpi.accent{background:linear-gradient(135deg, rgba(37,99,235,.05), rgba(37,99,235,.1)); border-color:rgba(37,99,235,.2);}
+    .kpi.green .value{color:var(--green)} .kpi.red .value{color:var(--red)}
+    .kpi.blue .value{color:var(--blue)} .kpi.amber .value{color:var(--amber)}
+
+    /* METAS / ACOMPANHAMENTO - ESTILOS ATUALIZADOS */
+    .miniKpis{
+      display:flex; flex-direction:column; gap:8px; 
+    }
+    .mini{
+      background:#f8fafc; border:1px solid var(--stroke); border-radius:10px;
+      padding:12px 16px; /* Padding levemente aumentado */
+      display:flex; align-items:center; justify-content:space-between; 
+    }
+    /* Fonte do Título aumentada */
+    .mini .t{
+      font-size:14px; /* Aumentado de 11px */
+      color:#334155; font-weight:800; text-transform:uppercase;
+    }
+    /* Fonte do Subtítulo aumentada */
+    .mini .s{
+      font-size:12px; /* Aumentado de 10px */
+      color:#64748b; font-weight:600;
+    }
+    /* Fonte do Valor aumentada drasticamente */
+    .mini .v{
+      font-size:32px; /* Aumentado de 24px */
+      font-weight:800; color:#0f172a; letter-spacing:-0.03em;
+    }
+
+    /* POTES */
+    .jars{
+      display:grid; grid-template-columns: 1fr; gap:18px;
+    }
+    .jarCard{
+      background:#fff; border:1px solid var(--stroke); border-radius:16px; 
+      padding:16px 18px;
+      display:grid; grid-template-columns:68px 1fr; 
+      gap:16px; align-items:center;
+    }
+    .jar{
+      width:78px; height:100px; 
+      border-radius:12px 12px 18px 18px;
+      border:1px solid rgba(15,23,42,.1);
+      background:linear-gradient(180deg, #f1f5f9, #e2e8f0);
+      position:relative; overflow:hidden;
+    }
+    .fill{position:absolute;left:0;right:0;bottom:0;height:50%;background:linear-gradient(180deg, var(--blue), #60a5fa);}
+    .fill.red{background:linear-gradient(180deg, var(--red), #f87171);}
+    .fill.green{background:linear-gradient(180deg, var(--green), #4ade80);}
+    
+    .jarMeta{
+      position:absolute;inset:0;
+      background:linear-gradient(90deg, rgba(255,255,255,.0), rgba(255,255,255,.55), rgba(255,255,255,.0));
+      transform: translateX(-80px) skewX(-12deg);
+      animation: glass 5.5s ease-in-out infinite; opacity:.5; pointer-events:none;
+    }
+    @keyframes glass{0%{transform: translateX(-100px) skewX(-12deg)}50%{transform: translateX(100px) skewX(-12deg)}100%{transform: translateX(200px) skewX(-12deg)}}
+
+    .jarTxt .name{
+      font-size:20px; 
+      font-weight:700; color:#334155; margin-bottom:4px;
+    }
+    .jarTxt .nums{
+      font-size:16px; 
+      color:#64748b; font-weight:500; line-height:1.35;
+    }
+    .jarTxt b {color:#0f172a; font-weight:700;}
+
+    footer{display:flex; justify-content:space-between; align-items:center; padding:0 8px; color:#94a3b8; font-size:11px; font-weight:600;}
+
+    .diag{
+      position:absolute; left:20px; right:20px; bottom:60px; display:none;
+      padding:12px; border-radius:10px; border:1px solid #fca5a5;
+      background:#fef2f2; color:#991b1b; box-shadow:var(--shadow); z-index:999;
+    }
+    .diag.show{display:block}
+    .diag code{display:block; margin-top:6px; font-family:monospace; background:rgba(0,0,0,0.05); padding:6px; border-radius:4px; font-size:11px;}
+
+    @media (max-width: 1200px){
+      main{grid-template-columns: 1fr;} 
+      .kpis{grid-template-columns: repeat(3, 1fr);}
+      .deptGrid{grid-template-rows: auto; grid-auto-rows: 240px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Conta Junto</h1>
+          <div class="sub">Painel Operacional</div>
+        </div>
+      </div>
+      <div class="rightHeader">
+        <div class="pill">🕒 <span id="clock">--:--:--</span></div>
+        <div class="pill"><span class="dot" id="loadDot"></span><span id="loadLabel">Carregando...</span></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <div class="sectionHeader">
+          <h2>📊 Status de Tarefas</h2>
+          <span class="badge">Top 6 Depts</span>
+        </div>
+        <div class="deptGrid" id="deptGrid"></div>
+      </section>
+
+      <section class="sidebarContent">
+        
+        <div class="sideCard">
+          <div class="sectionHeader"><h2>📌 Visão Geral</h2></div>
+          <div class="kpis">
+            <div class="kpi accent"><div class="label">Total</div><div class="value" id="k_total">—</div></div>
+            <div class="kpi blue"><div class="label">Abertas</div><div class="value" id="k_open">—</div></div>
+            <div class="kpi green"><div class="label">Concluídas</div><div class="value" id="k_done">—</div></div>
+            <div class="kpi red"><div class="label">Em atraso</div><div class="value" id="k_late">—</div></div>
+            <div class="kpi amber"><div class="label">Vencem hoje</div><div class="value" id="k_today">—</div></div>
+            <div class="kpi"><div class="label">Próx. 7 dias</div><div class="value" id="k_next7">—</div></div>
+          </div>
+        </div>
+
+        <div class="sideCard">
+          <div class="sectionHeader"><h2>📈 Acompanhamento</h2></div>
+          <div class="miniKpis" id="metaContainer">
+            </div>
+        </div>
+
+        <div class="sideCard" style="flex:1; display:flex; flex-direction:column;">
+          <div class="sectionHeader"><h2>🏺 Potes de Resultado</h2></div>
+          <div class="jars" id="jars" style="flex:1;"></div>
+        </div>
+
+      </section>
+    </main>
+
+    <footer>
+      <div>Fonte: Google Sheets • <span id="sourceInfo">—</span></div>
+      <div>Atualizado em <span id="updatedAt">—</span></div>
+    </footer>
+  </div>
+
+  <div class="diag" id="diag">
+    <h3>⚠️ Falha de Conexão</h3>
+    <p id="diagMsg">—</p>
+    <code id="diagUrl">—</code>
+  </div>
+
+<script>
+/* CONFIGURAÇÃO */
+const SHEET_ID = "16tFONc6OM2Z0I1q89jpPet9ulcgqOblsvGteaZHn8TY";
+const TASK_SHEETS = ["tarefas","Tarefas"];
+const META_SHEETS = ["Metas e Acompanhamento","Metas","Metas e acompanhamento"];
+const REFRESH_MS = 60 * 1000;
+
+const el = (id)=>document.getElementById(id);
+
+function setState(state, label){
+  const dot = el("loadDot");
+  dot.classList.remove("ok","bad");
+  if(state==="ok") dot.classList.add("ok");
+  if(state==="bad") dot.classList.add("bad");
+  el("loadLabel").textContent = label;
+}
+function showDiag(show, msg="", url=""){
+  const box=el("diag");
+  box.classList.toggle("show", !!show);
+  if(show){
+    el("diagMsg").textContent = msg || "—";
+    el("diagUrl").textContent = url || "—";
+  }
+}
+function brDate(d){
+  if(!(d instanceof Date) || isNaN(d)) return "—";
+  const dd=String(d.getDate()).padStart(2,"0");
+  const mm=String(d.getMonth()+1).padStart(2,"0");
+  const yy=d.getFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+function brTime(d){
+  if(!(d instanceof Date) || isNaN(d)) return "—";
+  const hh=String(d.getHours()).padStart(2,"0");
+  const mi=String(d.getMinutes()).padStart(2,"0");
+  return `${hh}:${mi}`;
+}
+function todayStart(){
+  const d=new Date(); d.setHours(0,0,0,0); return d;
+}
+function parseDate(x){
+  if(x===null||x===undefined) return null;
+  if(x instanceof Date && !isNaN(x)) { const d=new Date(x); d.setHours(0,0,0,0); return d; }
+  const s=String(x).trim(); if(!s) return null;
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`);
+  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m){
+    const dd=String(m[1]).padStart(2,"0");
+    const mm=String(m[2]).padStart(2,"0");
+    return new Date(`${m[3]}-${mm}-${dd}T00:00:00`);
+  }
+  const d=new Date(s); return isNaN(d)?null:d;
+}
+function toNumber(x){
+  if(x===null||x===undefined) return NaN;
+  const s=String(x).trim(); if(!s) return NaN;
+  const cleaned=s.replace(/[R$\s]/g,"").replace(/\./g,"").replace(",",".");
+  const n=Number(cleaned); return isNaN(n)?NaN:n;
+}
+function formatBRL(v){
+  const n=Number(v); if(!isFinite(n)) return "—";
+  return n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+}
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[c]));
+}
+
+// -------------------------
+// Carregamento de Dados
+// -------------------------
+function gvizToObjects(table){
+  const headers = (table.cols||[]).map((c,i)=> (c.label || c.id || `col${i}`));
+  const rows = (table.rows||[]).map(r=>{
+    const obj={};
+    (r.c||[]).forEach((cell,i)=>{
+      const val = (cell && (cell.f !== undefined && cell.f !== null) ? cell.f : (cell?.v ?? ""));
+      obj[headers[i]] = val;
+      obj[`_col${i}`] = val;
+    });
+    return obj;
+  });
+  return rows;
+}
+
+async function loadGVizJSONP(sheetName){
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=out:json`;
+  window.google = window.google || {};
+  window.google.visualization = window.google.visualization || {};
+  window.google.visualization.Query = window.google.visualization.Query || {};
+  const prev = window.google.visualization.Query.setResponse;
+  return await new Promise((resolve, reject)=>{
+    const s = document.createElement("script");
+    let done = false;
+    window.google.visualization.Query.setResponse = (res)=>{
+      if(done) return;
+      done = true; cleanup();
+      try{
+        if(!res || !res.table) throw { kind:"parse", msg:"Resposta GViz inválida.", url };
+        resolve({ sheet: sheetName, url, rows: gvizToObjects(res.table) });
+      }catch(e){ reject(e?.kind ? e : { kind:"parse", msg:"Erro conversão GViz.", url }); }
+    };
+    function cleanup(){
+      if(s && s.parentNode) s.parentNode.removeChild(s);
+      if(prev) window.google.visualization.Query.setResponse = prev;
+    }
+    s.src = url; s.async = true;
+    s.onerror = ()=>{
+      if(done) return; done = true; cleanup();
+      reject({ kind:"network", msg:"Falha rede script GViz.", url });
+    };
+    document.head.appendChild(s);
+    setTimeout(()=>{ if(done)return; done=true; cleanup(); reject({kind:"timeout", msg:"Timeout Google.", url}); }, 12000);
+  });
+}
+
+async function loadCSVFetch(sheetName){
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  try{
+    const res = await fetch(url, { cache:"no-store", credentials:"omit" });
+    const text = await res.text();
+    if(!res.ok) throw { kind:"http", msg:`HTTP ${res.status}.`, url };
+    if(text.slice(0,500).toLowerCase().includes("<!doctype html")) throw { kind:"auth", msg:"Auth Error.", url };
+    const out = Papa.parse(text, { header:true, skipEmptyLines:true });
+    const data = (out.data||[]).map(row => {
+      const keys = out.meta.fields || Object.keys(row);
+      keys.forEach((k, i) => { row[`_col${i}`] = row[k]; });
+      return row;
+    });
+    return { sheet: sheetName, url, rows: data };
+  }catch(e){
+    if(e instanceof TypeError) throw { kind:"cors", msg:"CORS block.", url };
+    throw e;
+  }
+}
+
+async function loadFirst(sheetCandidates){
+  let lastErr=null;
+  for(const name of sheetCandidates){ try{ return await loadGVizJSONP(name); }catch(e){ lastErr=e; } }
+  for(const name of sheetCandidates){ try{ return await loadCSVFetch(name); }catch(e){ lastErr=e; } }
+  throw lastErr || { kind:"unknown", msg:"Nenhuma aba carregou.", url:"" };
+}
+
+// -------------------------
+// Charts & Render
+// -------------------------
+const chartInstances = new Map();
+function clearDeptGrid(){
+  el("deptGrid").innerHTML="";
+  for(const ch of chartInstances.values()){ try{ ch.destroy(); }catch(e){} }
+  chartInstances.clear();
+}
+
+function buildDeptCard(parent, deptName){
+  const card=document.createElement("div"); card.className="deptCard";
+  
+  // Alert Badge
+  const badge=document.createElement("div"); 
+  badge.className="alertBadge"; 
+  badge.innerHTML="⚠️ ATENÇÃO";
+  card.appendChild(badge);
+
+  const title=document.createElement("div"); title.className="deptTitle"; title.textContent=deptName;
+  const wrap=document.createElement("div"); wrap.className="chartWrap";
+  const canvas=document.createElement("canvas"); 
+  const overlay=document.createElement("div"); overlay.className="chartOverlay";
+  overlay.innerHTML = `<span class="chartPct" data-pct>0%</span><span class="chartLabel">Concluído</span>`;
+  wrap.appendChild(canvas); wrap.appendChild(overlay);
+
+  const footer=document.createElement("div"); footer.className="deptFooter";
+  footer.innerHTML = `
+    <div class="statItem"><span class="statVal c-green" data-done>0</span><span class="statLabel">Concl.</span></div>
+    <div class="statItem"><span class="statVal c-blue" data-open>0</span><span class="statLabel">Abertas</span></div>
+    <div class="statItem"><span class="statVal c-red" data-late>0</span><span class="statLabel">Atraso</span></div>
+  `;
+  card.appendChild(title); card.appendChild(wrap); card.appendChild(footer);
+  parent.appendChild(card);
+  return { canvas, footer, overlay, card };
+}
+
+function upsertDoughnut(canvas, key, counts){
+  const data=[counts.done, counts.late, counts.onTime, counts.noDue];
+  const colors=["#16a34a", "#dc2626", "#3b82f6", "#cbd5e1"];
+  const labels=["Concluídas","Em atraso","No prazo","Sem venc."];
+  const prev=chartInstances.get(key);
+  if(prev){ prev.data.datasets[0].data=data; prev.update(); return; }
+  const cfg={
+    type:"doughnut",
+    data:{ labels, datasets:[{ data, backgroundColor:colors, borderWidth:0, hoverOffset:4, spacing:3 }]},
+    options:{ 
+      responsive:true, maintainAspectRatio:false, cutout:"75%",
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>`${ctx.label}: ${ctx.parsed}` } } }
+    }
+  };
+  chartInstances.set(key, new Chart(canvas.getContext("2d"), cfg));
+}
+
+function computeTaskMetrics(rows){
+  const t0=todayStart();
+  const t1=new Date(t0); t1.setDate(t1.getDate()+1);
+  const t7=new Date(t0); t7.setDate(t7.getDate()+7);
+  const norm=(s)=>String(s||"").trim();
+
+  const mapped=rows.map(r=>({
+    status:norm(r["Tarefa - Status"]),
+    dept:norm(r["Empresa - Departamento"])||"Sem departamento",
+    venc: parseDate(r["Tarefa - Data de Vencimento (completa)"]),
+  }));
+
+  const isDone=(x)=>["concluídas","concluidas"].includes(x.status.toLowerCase());
+  const isOpen=(x)=>["abertas","aberta"].includes(x.status.toLowerCase());
+
+  const total=mapped.length;
+  const done=mapped.filter(isDone).length;
+  const open=mapped.filter(isOpen).length;
+
+  const late=mapped.filter(x=>isOpen(x) && x.venc && x.venc < t0).length;
+  const today=mapped.filter(x=>isOpen(x) && x.venc && x.venc>=t0 && x.venc<t1).length;
+  const next7=mapped.filter(x=>isOpen(x) && x.venc && x.venc>=t0 && x.venc<t7).length;
+
+  const deptMap=new Map();
+  for(const x of mapped){
+    const key=x.dept;
+    if(!deptMap.has(key)) deptMap.set(key,{done:0,late:0,onTime:0,noDue:0,open:0});
+    const d=deptMap.get(key);
+    if(isDone(x)){ d.done++; continue; }
+    if(isOpen(x)){
+      d.open++;
+      if(!x.venc){ d.noDue++; continue; }
+      if(x.venc < t0) d.late++; else d.onTime++;
+    }
+  }
+  return { total,done,open, late, today, next7, deptMap };
+}
+
+function renderKPIs(m){
+  el("k_total").textContent = m.total.toLocaleString("pt-BR");
+  el("k_open").textContent  = m.open.toLocaleString("pt-BR");
+  el("k_done").textContent  = m.done.toLocaleString("pt-BR");
+  el("k_late").textContent  = m.late.toLocaleString("pt-BR");
+  el("k_today").textContent = m.today.toLocaleString("pt-BR");
+  el("k_next7").textContent = m.next7.toLocaleString("pt-BR");
+}
+
+function renderDepartments(m){
+  clearDeptGrid();
+  const grid=el("deptGrid");
+  const list=[...m.deptMap.entries()].map(([dept,c])=>({dept,...c})).sort((a,b)=> (b.open-a.open) || (b.late-a.late));
+  
+  for(const item of list.slice(0,6)){
+    const {canvas, footer, overlay, card} = buildDeptCard(grid, item.dept);
+    
+    if(item.late > 0){ card.classList.add("alert"); }
+
+    footer.querySelector("[data-done]").textContent = item.done;
+    footer.querySelector("[data-open]").textContent = item.open;
+    footer.querySelector("[data-late]").textContent = item.late;
+    const totalDept = item.done + item.open;
+    const pct = totalDept > 0 ? Math.round((item.done / totalDept) * 100) : 0;
+    const pctEl = overlay.querySelector("[data-pct]");
+    pctEl.textContent = `${pct}%`;
+    if(pct >= 100) pctEl.style.color = "var(--green)";
+    upsertDoughnut(canvas, item.dept, item);
+  }
+}
+
+function parseMetaSheet(rows){
+  if(!rows || !rows.length) return null;
+  const r0=rows[0]||{}; 
+
+  const m1 = { 
+    title: r0["Comercial"] || "Contratos Fechados", 
+    qty: r0["_col1"] || r0["Qtd"] || "0", 
+    meta: r0["_col2"] || r0["Meta"] || "0" 
+  };
+
+  const m2={ title:r0["Atendimento/Sucesso do Cliente"]||"SLA de Atendimento", qty:r0["Qtd.1"], minutes:r0["Minutos"] };
+  const m3={ title:r0["Legalização"]||"Legalização", qty: r0["_col9"] || r0["Qtd.2"] || "0" };
+
+  const jars=[];
+  for(const r of rows){
+    const name=(r["Potes de Resultado"]||"").toString().trim();
+    if(!name) continue;
+    jars.push({
+      name,
+      initial:toNumber(r["Valor Inicial"]),
+      remaining:toNumber(r["Valor Remanescente"]),
+      fines:toNumber(r["Multas no Mês"])
+    });
+  }
+  return {m1,m2,m3,jars};
+}
+
+function renderMeta(meta){
+  const container = el("metaContainer");
+  if(!meta){ container.innerHTML="<div class='mini' style='color:#94a3b8'>Sem dados</div>"; return; }
+
+  const metas = [
+    // ALTERAÇÃO AQUI: Formato "Quantidade / Meta"
+    { 
+      t: meta.m1.title||"Comercial", 
+      s: "Realizado / Meta", 
+      v: `${meta.m1.qty} / ${meta.m1.meta}` 
+    },
+    { t: meta.m2.title||"SLA", s: meta.m2.qty ? `Qtd: ${meta.m2.qty}` : "Atendimento", v: meta.m2.minutes || meta.m2.qty || "—" },
+    { t: meta.m3.title||"Legalização", s: "CNPJs Abertos no Mês", v: (meta.m3.qty??"—") }
+  ];
+
+  container.innerHTML = metas.map(m => `
+    <div class="mini">
+      <div class="metaGroup">
+        <div class="t" title="${escapeHtml(m.t)}">${escapeHtml(m.t)}</div>
+        <div class="s">${escapeHtml(m.s)}</div>
+      </div>
+      <div class="v">${escapeHtml(m.v)}</div>
+    </div>
+  `).join("");
+
+  const wrap=el("jars"); wrap.innerHTML="";
+  const show=(meta.jars||[]).slice(0,3);
+  if(!show.length){
+    wrap.innerHTML=`<div class="jarCard" style="color:#94a3b8">Sem dados de potes</div>`;
+    return;
+  }
+  for(const j of show){
+    const card=document.createElement("div"); card.className="jarCard";
+    const jar=document.createElement("div"); jar.className="jar";
+    const fill=document.createElement("div"); fill.className="fill";
+    const initial=isFinite(j.initial)?j.initial:NaN;
+    const remaining=isFinite(j.remaining)?j.remaining:NaN;
+    let pct=0.5;
+    if(isFinite(initial) && initial>0 && isFinite(remaining)) pct=Math.max(0,Math.min(1,remaining/initial));
+    fill.style.height = `${Math.round(pct*100)}%`;
+    if(pct>=0.7) fill.classList.add("green"); else if(pct<=0.35) fill.classList.add("red");
+    const glass=document.createElement("div"); glass.className="jarMeta";
+    jar.appendChild(fill); jar.appendChild(glass);
+    const txt=document.createElement("div"); txt.className="jarTxt";
+    txt.innerHTML = `
+      <div class="name" title="${escapeHtml(j.name)}">${escapeHtml(j.name)}</div>
+      <div class="nums">
+        Inicial: <b>${formatBRL(j.initial)}</b><br/>
+        Reman.: <b>${formatBRL(j.remaining)}</b>
+        ${isFinite(j.fines) ? `<br/>Multas: <b>${formatBRL(j.fines)}</b>` : ""}
+      </div>`;
+    card.appendChild(jar); card.appendChild(txt);
+    wrap.appendChild(card);
+  }
+}
+
+let lastOkAt=null;
+async function loadAll(){
+  setState("warn","Carregando...");
+  showDiag(false);
+  const started=new Date();
+  try{
+    const tasks = await loadFirst(TASK_SHEETS);
+    const taskRows = tasks.rows;
+    let metaRows=[];
+    try{ const metas = await loadFirst(META_SHEETS); metaRows = metas.rows; }catch(e){}
+    const metrics=computeTaskMetrics(taskRows);
+    renderKPIs(metrics);
+    renderDepartments(metrics);
+    renderMeta(parseMetaSheet(metaRows));
+    lastOkAt=new Date();
+    el("sourceInfo").textContent = `Aba: ${tasks.sheet}`;
+    el("updatedAt").textContent = `${brDate(lastOkAt)}, ${brTime(lastOkAt)}`;
+    setState("ok","Atualizado");
+  }catch(err){
+    console.error(err);
+    setState("bad","Falha");
+    el("updatedAt").textContent = `${brDate(started)}, ${brTime(started)}`;
+    el("sourceInfo").textContent = "Sem dados.";
+    const ex = err.msg ? err : { msg:"Erro desconhecido", url:"" };
+    showDiag(true, ex.msg, ex.url);
+  }
+}
+
+function tickClock(){
+  const d=new Date();
+  el("clock").textContent=d.toLocaleTimeString("pt-BR");
+}
+setInterval(tickClock,1000); tickClock();
+
+loadAll();
+setInterval(loadAll, REFRESH_MS);
+</script>
+</body>
+</html>

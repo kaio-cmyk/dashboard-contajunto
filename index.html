@@ -693,8 +693,8 @@ function renderMeta(meta){
       <div class="name" title="${escapeHtml(j.name)}">${escapeHtml(j.name)}</div>
       <div class="nums">
         Inicial: <b>${formatBRL(j.initial)}</b><br/>
-        Reman.: <b>${formatBRL(j.remaining)}</b>
-        ${isFinite(j.fines) ? `<br/>Multas: <b>${formatBRL(j.fines)}</b>` : ""}
+        Remanescente: <b>${formatBRL(j.remaining)}</b>
+        ${isFinite(j.fines) ? `<br/>Multas/Saída Clientes: <b>${formatBRL(j.fines)}</b>` : ""}
       </div>`;
     card.appendChild(jar); card.appendChild(txt);
     wrap.appendChild(card);
